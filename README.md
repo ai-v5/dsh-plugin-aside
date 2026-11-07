@@ -80,8 +80,8 @@ under Settings → Shortcuts (its id is `aside.new`).
 - **A side chat is a normal session.** It appears in the left session list too — that is
   deliberate, because it means you can reopen it in the main pane later. Close the tab to
   drop it from the sidebar; the session itself stays until you delete it.
-- **The tab title is captured when the table opens** and then follows the session's title,
-  so renaming the child updates the chip.
+- **The tab title follows the fork.** It is captured from the session when the tab opens
+  and kept live afterwards, so renaming the child updates the chip.
 - **There is no host-side switch.** A host config could not change browser behaviour, and
   a switch that lies is worse than none, so Aside has no config block.
 
