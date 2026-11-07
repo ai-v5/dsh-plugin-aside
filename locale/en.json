@@ -1,0 +1,14 @@
+{
+  "meta": {
+    "title": "Aside (旁白)",
+    "description": "Forked side chats in the right sidebar. Open a branch of the current conversation next to the terminal, keep talking there, ask it questions — the main thread is never touched."
+  },
+  "guide": {
+    "new": "New side chat",
+    "description": "Fork this conversation into the sidebar"
+  },
+  "tab": {
+    "title": "Aside",
+    "fallbackTitle": "Side chat"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "meta": {
+    "title": "Aside（旁白）",
+    "description": "右侧栏的分叉侧聊。把当前对话复制一份到终端旁的分支会话里继续聊、向它提问，主线程完全不受影响。"
+  },
+  "guide": {
+    "new": "新建旁聊",
+    "description": "把当前对话分叉到右侧栏"
+  },
+  "tab": {
+    "title": "旁白",
+    "fallbackTitle": "侧聊"
+  }
+}

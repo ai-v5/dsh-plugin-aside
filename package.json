@@ -1,0 +1,64 @@
+{
+  "name": "dsh-plugin-aside",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Aside (旁白) — a forked side chat in the DeepSeek Harness right sidebar: open a branch of the current conversation next to the terminal, talk to it, ask it questions, and leave the main thread untouched.",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "side-chat",
+    "fork",
+    "sidebar",
+    "aside"
+  ],
+  "license": "AGPL-3.0-or-later",
+  "icon": "./icon.svg",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ai-v5/dsh-plugin-aside.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ai-v5/dsh-plugin-aside/issues"
+  },
+  "homepage": "https://github.com/ai-v5/dsh-plugin-aside#readme",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "README.zh.md",
+    "DESIGN.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "check": "node --check index.js && node --check client.js",
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "test:unit": "node --test \"test/unit/*.test.mjs\""
+  },
+  "engines": {
+    "node": ">=22",
+    "dsh": ">=0.2.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  }
+}

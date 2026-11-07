@@ -1,0 +1,16 @@
+# Bundle patch for dsh-plugin-aside.
+#
+# Installed as a profile bundle (`dsh plugin --profile <p> add <dir>`), this row
+# inserts the plugin into the profile's Cordis tree.
+#
+# The host half is deliberately inert — Aside adds no tool, no prompt section and
+# no command, so it costs zero model tokens. This row still matters: a bundle row
+# is what puts the package in the profile, and therefore in the Web client's
+# module graph, which is where the real plugin (`./client.js`) is loaded from.
+#
+# There is no `config` block: every knob this plugin has lives in the browser
+# (the tab itself), and a host switch that cannot change browser behaviour would
+# be a lie.
+- insert:
+    - id: aside
+      name: 'dsh-plugin-aside'

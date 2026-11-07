@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Local harness data written by the plugin during development
+.dsh-aside/
+.dsh-h2/
+
+# Test / verification artifacts
+test/.artifacts/
+*.log
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

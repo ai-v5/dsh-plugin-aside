@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Aside">
+  <!-- Main thread: a rounded column on the left. -->
+  <path d="M4 5.5h7.2a1.6 1.6 0 0 1 1.6 1.6v9.8a1.6 1.6 0 0 1-1.6 1.6H4a1.6 1.6 0 0 1-1.6-1.6V7.1A1.6 1.6 0 0 1 4 5.5Z" />
+  <!-- Branch: a small speech bubble off to the side. -->
+  <path d="M15.2 8.4h4.4a1.6 1.6 0 0 1 1.6 1.6v3.6a1.6 1.6 0 0 1-1.6 1.6h-1.9l-2 2v-2h-.5a1.6 1.6 0 0 1-1.6-1.6V10a1.6 1.6 0 0 1 1.6-1.6Z" />
+  <!-- Fork marker: the branch leaves the main thread. -->
+  <path d="M12.8 12h2.4" />
+  <path d="M5.4 9.4h4.4M5.4 12h3.2M5.4 14.6h4.4" />
+</svg>
