@@ -220,3 +220,24 @@ test('the shortcut is a distinct, page-wide binding', () => {
     assert.deepEqual(shortcut.defaults[platform].modifiers, ['primary', 'shift'], `${platform} must stay browser-safe`)
   }
 })
+
+test('a shortcut conflict never takes the rest of the plugin down', () => {
+  // `shortcuts.register` throws on a conflicting or reserved default. If that
+  // throw escaped, this entry would fail to activate and the Web shell would
+  // show "Failed to load plugins" instead of the app. The card must survive.
+  const warnings = []
+  const originalWarn = console.warn
+  console.warn = (...args) => warnings.push(args)
+  let recorded
+  try {
+    ;({ recorded } = applyPlugin({ throwOnShortcut: true }))
+  } finally {
+    console.warn = originalWarn
+  }
+  assert.equal(recorded.shortcuts.length, 0, 'the shortcut is not registered')
+  assert.equal(recorded.tabTypes.length, 1, 'the tab type still registers')
+  assert.equal(recorded.resources.length, 1, 'the resource provider still registers')
+  assert.equal(recorded.slots.length, 4, 'every slot still registers')
+  assert.equal(warnings.length, 1, 'the failure is reported once')
+  assert.match(String(warnings[0][0]), /shortcut could not be registered/)
+})

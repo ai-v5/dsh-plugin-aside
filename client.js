@@ -519,9 +519,15 @@ window.__ModuleLoader__.load({
         'aside:conversation',
       )
 
-      ctx.effect(
-        () =>
-          ctx.shortcuts.register({
+      // The shortcut is a convenience, not the feature. `shortcuts.register`
+      // throws on a conflicting or reserved default, and a throw here would
+      // abort this entry's activation — which the Web shell reports as
+      // "Failed to load plugins" and an unusable page. A key binding must never
+      // be able to take the whole UI down, so this one registration degrades to
+      // a console warning instead.
+      ctx.effect(() => {
+        try {
+          return ctx.shortcuts.register({
             id: SHORTCUT_ID,
             label: () => t('guide.new'),
             aliases: ['new aside', 'new side chat', '旁聊'],
@@ -551,9 +557,12 @@ window.__ModuleLoader__.load({
                 },
               }
             },
-          }),
-        'aside:shortcut',
-      )
+          })
+        } catch (error) {
+          console.warn('[aside] the side-chat shortcut could not be registered; the start-page card still works.', error)
+          return undefined
+        }
+      }, 'aside:shortcut')
     }
 
     return {

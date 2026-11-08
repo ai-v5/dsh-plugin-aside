@@ -28,6 +28,7 @@ function interpolate(template, params) {
  * @param {(options: object) => Promise<string>} [options.fork] - fork implementation.
  * @param {(target: unknown, options: object) => object} [options.retain] - session retain implementation.
  * @param {(element?: unknown) => object | undefined} [options.commandTarget] - shortcut target resolution.
+ * @param {boolean} [options.throwOnShortcut] - make `shortcuts.register` throw, as a real key conflict does.
  * @returns {object} `{ ctx, recorded }` where `recorded` holds every registration.
  */
 export function createFakeContext(options = {}) {
@@ -126,6 +127,7 @@ export function createFakeContext(options = {}) {
     },
     shortcuts: {
       register(shortcut) {
+        if (options.throwOnShortcut === true) throw new Error(`Conflicting shortcut defaults: ${shortcut.id}`)
         recorded.shortcuts.push(shortcut)
         return disposer
       },
