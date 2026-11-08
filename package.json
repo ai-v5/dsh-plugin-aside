@@ -32,6 +32,7 @@
   "files": [
     "index.js",
     "client.js",
+    "src/**/*.js",
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
@@ -41,7 +42,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "check": "node --check index.js && node --check client.js",
+    "check": "node --check index.js && node --check client.js && node --check src/tell-main.js",
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:unit": "node --test \"test/unit/*.test.mjs\""
   },

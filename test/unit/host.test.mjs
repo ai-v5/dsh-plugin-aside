@@ -13,11 +13,32 @@ test('the host half exposes a named Cordis plugin', () => {
   assert.equal(host.default.apply, host.apply)
 })
 
-test('the host half is inert: no config, no inject, no model surface', () => {
+test('the host half registers one tool and waits for the connection, with no prompt surface', () => {
   assert.equal(host.Config, undefined, 'a host config could not affect browser behaviour')
-  assert.equal(host.inject, undefined, 'the plugin must activate in headless compositions too')
-  assert.equal(host.apply.length, 0, 'apply must not take a config argument')
-  assert.equal(host.apply(), undefined)
+  assert.deepEqual(host.inject, ['tools', 'agents'], 'both are needed by the relay tool and are core')
+  assert.equal(host.apply.length, 1, 'apply takes the context only')
+
+  const tools = []
+  const injections = []
+  const context = {
+    inject(names, run) {
+      injections.push(names)
+      run({ connection: { fetch: { register: () => () => {} } }, effect: (fn) => fn() })
+    },
+    effect: (fn) => fn(),
+    tools: {
+      register(definition) {
+        tools.push(definition)
+        return () => {}
+      },
+    },
+  }
+  const dispose = host.apply(context)
+  assert.equal(typeof dispose, 'function', 'apply returns a composite disposer')
+  assert.equal(tools.length, 1, 'exactly one tool is registered')
+  assert.equal(tools[0].name, 'aside_tell_main')
+  assert.deepEqual(injections, [['connection']], 'the route waits for the connection service')
+  assert.doesNotThrow(() => dispose(), 'disposing is safe')
 })
 
 test('the manifest names the package the sidebar slots are keyed by', () => {
@@ -53,10 +74,13 @@ test('the declared icon and locale files exist and stay small enough', () => {
   }
 })
 
-test('the published file list carries no stray paths', () => {
+test('the published file list ships every runtime file the manifest points at', () => {
   assert.ok(manifest.files.includes('client.js'))
   assert.ok(manifest.files.includes('index.js'))
-  assert.ok(!manifest.files.some((entry) => entry.startsWith('src/')), 'there is no src directory any more')
+  assert.ok(manifest.files.includes('src/**/*.js'), 'the relay tool lives under src/')
+  for (const shipped of manifest.files.filter((entry) => entry.includes('src/'))) {
+    assert.ok(readFileSync(new URL(`../../${shipped.replace('**/*.js', 'tell-main.js')}`, import.meta.url)).length > 0, `${shipped} must match a real file`)
+  }
 })
 
 test('every image the README embeds exists', () => {
