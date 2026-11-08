@@ -15,8 +15,12 @@
  * One tool, `aside_tell_main`, reads that table; outside a tracked side chat it
  * refuses.
  *
- * Nothing here touches the system prompt, and no tokens are spent unless a side
- * chat's agent decides to call the tool.
+ * A side chat also has to know *that* it is one, or it would never think to
+ * report anything back. A single prompt section says so, and it renders only for
+ * sessions this half has a link for — every other conversation assembles the
+ * empty string, which the prompt renderer drops before joining. So the surface is
+ * confined to side chats: a main conversation still spends nothing, and a side
+ * chat pays for three sentences on each of its own turns.
  *
  * @module dsh-plugin-aside
  */
@@ -27,17 +31,18 @@ import { dirname, join } from 'node:path'
 import { createLinkStore } from './src/link-store.js'
 import { registerLinkRoute } from './src/link-route.js'
 import { createTellMainTool } from './src/tell-main.js'
+import { createIdentitySection } from './src/identity-section.js'
 
 /** Diagnostic name used by the loader, the logger and the plugin inventory. */
 export const name = 'aside'
 
 /**
- * `tools` and `agents` are core in every composition that can host a
- * conversation: the tool needs both, and Cordis only exposes an injected service
- * on `ctx`. The connection is optional and waited for separately inside the
+ * `tools`, `agents` and `systemPrompt` are core in every composition that can
+ * host a conversation: the tool needs the first two, the identity section needs
+ * the third. The connection is optional and waited for separately inside the
  * route registration, so a headless composition still activates.
  */
-export const inject = ['tools', 'agents']
+export const inject = ['tools', 'agents', 'systemPrompt']
 
 /**
  * Read the persisted link table, tolerating a missing or corrupt file.
@@ -75,7 +80,7 @@ function writeLinks(path, links) {
 }
 
 /**
- * Register the link route and the relay tool.
+ * Register the link route, the side-chat identity section and the relay tool.
  *
  * @param {object} ctx - plugin context.
  * @returns {() => void} composite disposer.
@@ -108,10 +113,14 @@ export function apply(ctx) {
   }
 
   registerLinkRoute(ctx, store)
+  const disposeSection = ctx.systemPrompt.section(createIdentitySection(store))
   const disposeTool = ctx.tools.register(createTellMainTool(ctx, store))
 
   return () => {
     if (timer !== undefined) clearTimeout(timer)
+    try {
+      disposeSection()
+    } catch {}
     try {
       disposeTool()
     } catch {}

@@ -13,12 +13,13 @@ test('the host half exposes a named Cordis plugin', () => {
   assert.equal(host.default.apply, host.apply)
 })
 
-test('the host half registers one tool and waits for the connection, with no prompt surface', () => {
-  assert.equal(host.Config, undefined, 'a host config could not affect browser behaviour')
-  assert.deepEqual(host.inject, ['tools', 'agents'], 'both are needed by the relay tool and are core')
+test('the host half registers the tool, the identity section and the route', () => {
+  assert.equal(host.Config, undefined, 'a host config could not change browser behaviour')
+  assert.deepEqual(host.inject, ['tools', 'agents', 'systemPrompt'], 'all three are core services this half needs')
   assert.equal(host.apply.length, 1, 'apply takes the context only')
 
   const tools = []
+  const sections = []
   const injections = []
   const context = {
     inject(names, run) {
@@ -32,11 +33,19 @@ test('the host half registers one tool and waits for the connection, with no pro
         return () => {}
       },
     },
+    systemPrompt: {
+      section(definition) {
+        sections.push(definition)
+        return () => {}
+      },
+    },
   }
   const dispose = host.apply(context)
   assert.equal(typeof dispose, 'function', 'apply returns a composite disposer')
   assert.equal(tools.length, 1, 'exactly one tool is registered')
   assert.equal(tools[0].name, 'aside_tell_main')
+  assert.equal(sections.length, 1, 'exactly one prompt section is registered')
+  assert.equal(sections[0].name, 'aside:side-chat')
   assert.deepEqual(injections, [['connection']], 'the route waits for the connection service')
   assert.doesNotThrow(() => dispose(), 'disposing is safe')
 })

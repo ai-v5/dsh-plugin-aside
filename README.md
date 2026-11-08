@@ -30,9 +30,11 @@ docks, splits, floats and goes fullscreen exactly like the terminal tab does.
   turn, or steering into it. The delivered line is marked `【来自旁聊】` and carries
   `agent-message` provenance, so it never passes for something you typed. Outside a
   side chat the tool refuses; it never guesses a target.
-- **Almost no model surface.** Aside registers exactly one tool and no prompt
-  section, and that tool does nothing unless a side chat's agent calls it. A
-  conversation that never opens a side chat pays nothing for it.
+- **Next to no model surface.** A conversation that never opens a side chat still
+  pays nothing: the one prompt section this plugin registers renders the empty
+  string unless the session is a tracked side chat, and the prompt renderer drops
+  empty sections. A side chat itself pays for three sentences saying what it is
+  and how to report back, plus the one tool.
 
 ## Install
 
@@ -68,10 +70,12 @@ Three registrations, all in the browser half:
    pinned. The transcript, composer, queue and attachments are the native ones; Aside
    only supplies the address and the placement.
 
-The host half (`index.js`) is intentionally inert: a bundle row has to resolve to a
-Cordis plugin, but there is nothing to register on the host. That is why the plugin adds
-no tools and no prompt text. See [DESIGN.md](DESIGN.md) for the full rationale and the
-API contract each step depends on.
+The host half (`index.js`) covers the one direction the browser cannot reach. DSH records
+no parent link on a fork — its header carries `isSeeded`, never the origin — so the browser
+announces the relationship over `POST /api/aside/link`, the host keeps it in
+`$DSH_HOME/aside/links.json`, and two things read that table: the prompt section that tells
+a side chat what it is, and the `aside_tell_main` tool that carries a message back. See
+[DESIGN.md](DESIGN.md) for the full rationale and the API contract each step depends on.
 
 ## Shortcut
 

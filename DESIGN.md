@@ -23,10 +23,16 @@ route, no typed RPC, no server state to migrate, and nothing to keep in sync. Th
 precedent inside DSH itself is `@deepseek-ai/dsh-client-ui-subagent`, which renders a
 subagent child's conversation in a sidebar tab with the same five pieces.
 
-The host half exists only because a profile bundle row must resolve to a Cordis plugin.
-It is inert on purpose: no tools, no prompt section, no command, no config. One
-consequence worth stating plainly — because there is no host surface, installing Aside
-cannot change what the model sees, which is also why it is safe to ship enabled.
+The host half exists for exactly one gap the browser cannot close, and it is worth being
+blunt about why: **DSH records no parent link on a fork.** A forked session's header
+carries `isSeeded: true` and nothing else; its `session/end-seed` event records only
+`{ inherited: true }`. The parent identity lives in the browser, which encodes it in the
+tab's resource address — so the browser has to tell the host, and the host keeps a small
+durable table. Two things read it: the prompt section that tells a side chat what it is,
+and the `aside_tell_main` tool that carries one message back.
+
+That is the whole host surface. No command, no config, and no prompt text reaches a
+conversation that is not a tracked side chat.
 
 ## The five registrations
 
@@ -155,7 +161,8 @@ invented, and this is the one place to re-check when DSH changes.
   host-side filter that the catalogue does not offer. Showing them is also useful: a side
   chat can be resumed in the main pane.
 - **A host config block.** Nothing on the host can change what the browser does.
-- **A `/aside` command or an `aside_ask` tool.** Both would add model surface for a
-  capability the composer already provides. If "the main agent asks its own side chat"
-  ever becomes a real feature, it belongs in the host half as a tool — not as speculative
-  scaffolding now.
+- **`aside_ask`: the main conversation interrogating a side chat.** The reverse arrow is
+  still absent on purpose. It needs the main agent to address one of N side chats, wait
+  for an answer, and splice it back into its own context — a different feature from the
+  one-message hand-off `aside_tell_main` provides, and one that is much easier to get
+  wrong (double-model turns, no natural cancellation point). Ship the hand-off first.
