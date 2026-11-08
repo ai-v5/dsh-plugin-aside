@@ -25,9 +25,14 @@ docks, splits, floats and goes fullscreen exactly like the terminal tab does.
 - **It survives reloads and restarts.** The tab is stored with the sidebar layout and
   re-attaches to the same child session when you come back.
 - **As many as you want.** Each one is an independent session.
-- **Zero model surface.** Aside registers no tool, no prompt section and no command.
-  It costs no tokens until you open a side chat, and it changes nothing about how the
-  main agent behaves.
+- **The side chat can talk back.** Its agent has one extra tool, `aside_tell_main`,
+  which delivers a message into the main conversation — queued after the current
+  turn, or steering into it. The delivered line is marked `【来自旁聊】` and carries
+  `agent-message` provenance, so it never passes for something you typed. Outside a
+  side chat the tool refuses; it never guesses a target.
+- **Almost no model surface.** Aside registers exactly one tool and no prompt
+  section, and that tool does nothing unless a side chat's agent calls it. A
+  conversation that never opens a side chat pays nothing for it.
 
 ## Install
 
@@ -100,6 +105,8 @@ integration.
 | The main thread is untouched | main transcript never contained the side prompt |
 | A reload restores the same side chat | same child id and same turn after `Page.reload` |
 | A second side chat is independent | a second tab opened as a different child session |
+| The side chat can reach the main thread | `aside_tell_main` from the side chat made the main conversation answer; the reply observed in the main transcript was "MAIN_TELL_PROBE received in the main conversation via the side-chat relay" |
+| The relay does not echo back | the side transcript never contained the `【来自旁聊】` mark |
 
 ## Development
 

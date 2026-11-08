@@ -51,6 +51,8 @@ window.__ModuleLoader__.load({
     const CONVERSATION_SLOT = 'aside.chat.conversation'
     /** Shortcut id of "new side chat". */
     const SHORTCUT_ID = 'aside.new'
+    /** Document-relative host route that records the fork relationship. */
+    const LINK_ANNOUNCE_PATH = 'api/aside/link'
 
     /** Simplified Chinese copy. */
     const zh = {
@@ -145,6 +147,45 @@ window.__ModuleLoader__.load({
       return new Promise((resolve) => {
         signal.addEventListener('abort', () => resolve(), { once: true })
       })
+    }
+
+    /**
+     * Tell the host which conversation a side chat was forked from.
+     *
+     * DSH does not persist that relationship (`sessions.fork` writes
+     * `isSeeded: true` and an end-seed event of `{ inherited: true }`, but no
+     * parent id), so the host cannot answer "who is this side chat's parent?"
+     * on its own. This is the one fact the browser has to hand over; the host
+     * keeps it in `links.json` and `aside_tell_main` reads it from there.
+     *
+     * Best effort by design: a failure here costs the relay tool for this side
+     * chat, never the side chat itself.
+     *
+     * @param {string} childId - the forked session.
+     * @param {string} parentId - the conversation it was forked from.
+     * @returns {Promise<boolean>} whether the host accepted the link.
+     */
+    async function announceLink(childId, parentId) {
+      if (typeof document === 'undefined' || typeof fetch !== 'function') return false
+      try {
+        // Document-relative, mirroring `dsh-client-file-upload`, so a path prefix
+        // in front of the UI keeps working.
+        const url = new URL(LINK_ANNOUNCE_PATH, document.baseURI)
+        const response = await fetch(url, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ childId, parentId }),
+        })
+        if (!response.ok) {
+          console.warn(`[aside] the host rejected the side-chat link (${response.status}); aside_tell_main will be unavailable in this tab.`)
+          return false
+        }
+        return true
+      } catch (error) {
+        console.warn('[aside] could not tell the host which conversation this side chat came from; aside_tell_main will be unavailable here.', error)
+        return false
+      }
     }
 
     // ----------------------------------------------------------------- styles
@@ -410,6 +451,9 @@ window.__ModuleLoader__.load({
       const startSideChat = async (parentSessionId, placement = {}) => {
         if (typeof parentSessionId !== 'string' || parentSessionId.length === 0) throw new Error(t('guide.noSession'))
         const childSessionId = await ctx.sessions.fork({ sessionId: parentSessionId, increaseTitle: true })
+        // Record the fork before the tab can be used, so the relay tool is
+        // available the moment the side chat's agent looks for it.
+        await announceLink(childSessionId, parentSessionId)
         ctx.sidebarRight.openResource(asideAddress(childSessionId, parentSessionId), {
           kind: KIND,
           ...(placement.replaceTab === undefined ? {} : { replaceTab: placement.replaceTab }),
@@ -574,7 +618,9 @@ window.__ModuleLoader__.load({
         parseAsideAddress,
         messageOf,
         ensureStyles,
+        announceLink,
         CSS_TAG_ID,
+        LINK_ANNOUNCE_PATH,
         zh,
         en,
         AsideGuideCard,

@@ -1,11 +1,10 @@
 /**
  * `aside_tell_main` — the side chat's way back to the conversation it came from.
  *
- * A side chat is a fork: an ordinary, independent session whose header records
- * the session it was forked from. That link is one-directional by default —
- * the child inherits history, the parent never hears about the child. This tool
- * adds the missing arrow: the agent working inside a side chat can hand a
- * message back to the main conversation.
+ * A side chat is a fork: an ordinary, independent session. DSH does not record
+ * the parent anywhere durable, so the browser posts that relationship to the
+ * host when it forks (see `link-store.js` / `link-route.js`). This tool is the
+ * consumer of that table.
  *
  * Delivery reuses the same admission path the Web client's composer uses
  * (`agent.followup` / `agent.steer` splice into the target agent's inbox), so an
@@ -18,6 +17,8 @@
  *  - the text itself is prefixed, because a reader who only sees the transcript
  *    must not mistake it for the human's own words.
  *
+ * If no link is known the tool refuses. It never delivers to a guessed target.
+ *
  * @module dsh-plugin-aside/tell-main
  */
 
@@ -29,10 +30,7 @@ export const TOOL_NAME = 'aside_tell_main'
 /** Prefix that keeps an injected line from passing as the human's own words. */
 export const RELAY_MARK = '【来自旁聊 · from side chat】'
 
-/**
- * Error carrying a stable code, so the tool reply can be specific instead of a
- * stack trace.
- */
+/** Error carrying a stable code, so the tool reply can be specific. */
 export class AsideRelayError extends Error {
   /**
    * @param {string} code - stable machine code.
@@ -79,28 +77,22 @@ export function buildRelayedMessage({ body, senderSessionId }) {
 }
 
 /**
- * Decide which session a side chat belongs to.
+ * Resolve which conversation a side chat reports back to.
  *
- * Only a fork made by this plugin qualifies: it has a `parentSession` and is not
- * a subagent child (those have their own delivery rules and must not be driven
- * through this path).
- *
- * @param {object | undefined} header - observed session header.
+ * @param {object} store - the link table.
+ * @param {string} childId - the calling session.
  * @returns {string} the parent session id.
  */
-export function resolveParentSessionId(header) {
-  if (header === undefined || header === null) {
+export function resolveParentSessionId(store, childId) {
+  if (typeof childId !== 'string' || childId.length === 0) {
     throw new AsideRelayError('NO_SESSION', 'The current session could not be read.')
   }
-  if (header.origin === 'subagent') {
-    throw new AsideRelayError('NOT_A_SIDE_CHAT', 'This is a subagent session; aside_tell_main only works inside an Aside side chat.')
-  }
-  const parent = header.parentSession
-  if (typeof parent !== 'string' || parent.length === 0) {
-    throw new AsideRelayError('NOT_A_SIDE_CHAT', 'This session is not a side chat: it has no conversation to report back to.')
-  }
-  if (parent === header.id) {
-    throw new AsideRelayError('NOT_A_SIDE_CHAT', 'A session cannot be its own main conversation.')
+  const parent = store.get(childId)
+  if (parent === undefined) {
+    throw new AsideRelayError(
+      'NOT_A_SIDE_CHAT',
+      'This session is not a tracked side chat, so there is no main conversation to report back to. Side chats created before this plugin recorded links cannot relay.',
+    )
   }
   return parent
 }
@@ -123,7 +115,8 @@ export const PARAMETERS_SCHEMA = Object.freeze({
   properties: {
     message: {
       type: 'string',
-      description: 'What the main conversation should know or do. Write it as a complete instruction; the main agent sees it without this conversation\'s context.',
+      description:
+        "What the main conversation should know or do. Write it as a complete instruction; the main agent sees it without this conversation's context.",
     },
     mode: {
       type: 'string',
@@ -156,14 +149,14 @@ export function deliver(agent, message, mode) {
 /**
  * Build the tool definition.
  *
- * Services are read lazily from the plugin context so a composition without
- * agent support still loads this plugin (the tool then reports that fact
- * instead of failing activation).
+ * Services are read lazily so a composition without agent support still loads
+ * this plugin (the tool then reports that fact instead of failing activation).
  *
  * @param {object} ctx - the plugin context.
+ * @param {object} store - the link table.
  * @returns {object} a `ctx.tools.register` definition.
  */
-export function createTellMainTool(ctx) {
+export function createTellMainTool(ctx, store) {
   const normalizeMode = (value) => (value === 'steer' ? 'steer' : 'queue')
   return {
     name: TOOL_NAME,
@@ -189,14 +182,12 @@ export function createTellMainTool(ctx) {
       if (agent === undefined || agent === null) {
         throw new AsideRelayError('NO_AGENT', 'There is no live agent for this session.')
       }
-      const agents = ctx.get('agents')
-      const sessionQuery = ctx.get('sessionQuery')
-      if (agents === undefined || sessionQuery === undefined) {
+      const agents = ctx.agents
+      if (agents === undefined || agents === null) {
         throw new AsideRelayError('UNAVAILABLE', 'This composition exposes no agent registry to relay through.')
       }
 
-      const observation = await sessionQuery.observeSession(agent.id)
-      const parentSessionId = resolveParentSessionId(observation?.header)
+      const parentSessionId = resolveParentSessionId(store, agent.id)
 
       const parentAgent = agents.get(parentSessionId)
       if (parentAgent === undefined || parentAgent === null) {

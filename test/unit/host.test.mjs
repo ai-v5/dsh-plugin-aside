@@ -13,25 +13,32 @@ test('the host half exposes a named Cordis plugin', () => {
   assert.equal(host.default.apply, host.apply)
 })
 
-test('the host half registers exactly one tool and no prompt surface', () => {
+test('the host half registers one tool and waits for the connection, with no prompt surface', () => {
   assert.equal(host.Config, undefined, 'a host config could not affect browser behaviour')
-  assert.deepEqual(host.inject, ['tools'], 'tools is the only required service; the rest are read lazily')
+  assert.deepEqual(host.inject, ['tools', 'agents'], 'both are needed by the relay tool and are core')
   assert.equal(host.apply.length, 1, 'apply takes the context only')
 
-  const registered = []
-  const disposer = () => {}
+  const tools = []
+  const injections = []
   const context = {
-    get: () => undefined,
+    inject(names, run) {
+      injections.push(names)
+      run({ connection: { fetch: { register: () => () => {} } }, effect: (fn) => fn() })
+    },
+    effect: (fn) => fn(),
     tools: {
       register(definition) {
-        registered.push(definition)
-        return disposer
+        tools.push(definition)
+        return () => {}
       },
     },
   }
-  assert.equal(host.apply(context), disposer, 'apply returns the registration disposer')
-  assert.equal(registered.length, 1, 'exactly one tool is registered')
-  assert.equal(registered[0].name, 'aside_tell_main')
+  const dispose = host.apply(context)
+  assert.equal(typeof dispose, 'function', 'apply returns a composite disposer')
+  assert.equal(tools.length, 1, 'exactly one tool is registered')
+  assert.equal(tools[0].name, 'aside_tell_main')
+  assert.deepEqual(injections, [['connection']], 'the route waits for the connection service')
+  assert.doesNotThrow(() => dispose(), 'disposing is safe')
 })
 
 test('the manifest names the package the sidebar slots are keyed by', () => {
