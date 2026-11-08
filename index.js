@@ -1,40 +1,44 @@
 /**
  * dsh-plugin-aside — host entry point.
  *
- * Aside is a **client-side plugin**. Everything it does happens in the browser:
- * the right-sidebar tab type, the start-page card, the forked `dsh-resource://`
- * address, and the embedded conversation. The fork itself is
- * `ctx.sessions.fork(...)`, a session-controller call the Web client already
- * exposes (the chat's own "branch here" action uses it), so no host RPC, no
- * custom route and no server-side state is involved.
+ * Most of Aside lives in the browser: the right-sidebar tab type, the
+ * start-page card, the forked `dsh-resource://` address and the embedded
+ * conversation. That half needs nothing from the host, because forking a
+ * conversation is `ctx.sessions.fork(...)` — a call the Web client already
+ * exposes.
  *
- * This module therefore exists for exactly one reason: a profile bundle row
- * (`dsh.bundle.patch`) must resolve to a Cordis plugin, and that row is what
- * makes the profile — and the Web client's module graph — aware of the package
- * at all. It is deliberately inert:
+ * This half exists for the one direction the browser cannot reach: a message
+ * travelling **from** a side chat **back to** the conversation it was forked
+ * from. That needs a live agent inbox, which is a host concern. It is one tool,
+ * `aside_tell_main`, and it refuses to do anything outside an Aside side chat.
  *
- *  - it registers no system-prompt section, no tool and no command, so Aside
- *    adds **zero model surface** and costs **zero tokens**;
- *  - it holds no configuration, because a host-side switch could not change a
- *    browser-side behaviour and a switch that lies is worse than none;
- *  - it has no `inject`, so it activates even in headless compositions.
- *
- * If a future version needs host work (for example asking a side chat a
- * question from the main thread), that belongs here — behind a real feature,
- * not as speculative scaffolding.
+ * Nothing here touches the system prompt, and no turn is spent unless a side
+ * chat's agent decides to call the tool.
  *
  * @module dsh-plugin-aside
  */
+
+import { createTellMainTool } from './src/tell-main.js'
 
 /** Diagnostic name used by the loader, the logger and the plugin inventory. */
 export const name = 'aside'
 
 /**
- * Cordis entry point. Intentionally empty: everything this plugin contributes is
- * registered by the browser half (`./client.js`).
- *
- * @returns {void}
+ * `tools` is core in every composition that can host a conversation. The agent
+ * registry and session query are read with `ctx.get(...)` instead, so a
+ * composition without them still activates and the tool simply reports that it
+ * cannot relay.
  */
-export function apply() {}
+export const inject = ['tools']
 
-export default { name, apply }
+/**
+ * Register the side-chat relay tool.
+ *
+ * @param {object} ctx - plugin context.
+ * @returns {() => void} disposer for the registration.
+ */
+export function apply(ctx) {
+  return ctx.tools.register(createTellMainTool(ctx))
+}
+
+export default { name, inject, apply }
